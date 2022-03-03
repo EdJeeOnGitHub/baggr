@@ -1,0 +1,13 @@
+citHeader("To cite baggr in publications use:")
+
+citEntry(
+  entry    = "Article",
+  title    = "baggr: Bayesian aggregation package for R",
+  author   = "Więcek, Witold and Meager, Rachael",
+  journal  = "",
+  year     = "2022",
+  volume   = "",
+  number   = "",
+  pages    = "",
+  url      = "https://github.com/wwiecek/baggr"
+)
