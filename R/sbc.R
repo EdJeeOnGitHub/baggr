@@ -26,7 +26,7 @@ gen_data = function(seed) {
     # super tight beta draws atm
     # TODO: Draw from an actual hyper distribution
     beta_mean = rep(0, nc)
-    beta_sigma = rep(0.1, nc)
+    beta_sigma = rep(1, nc)
 
     # whether interval censored or not is random atm
     censoring = rbernoulli(N, p = 0.5)
@@ -49,16 +49,24 @@ gen_params <- function(seed,
   set.seed(seed + 2e6)
     beta = rnorm(data$nc, data$beta_mean, data$beta_sigma)
 
-    shape = rlnorm(1, 0, 2)
+    lshape = rnorm(1, 2, 0.5)
+    shape = exp(lshape)
     beta_transformed = -1*beta/shape
   
   return(list(
       beta = beta,
       shape = shape,
+      lshape = lshape,
       beta_transformed = beta_transformed
   ))
   
 }
+# N = 1000
+# lshape = rnorm(N, 2, 0.5)
+# shape = exp(lshape)
+# beta = rnorm(N, 0, 1)
+# bt = -1*beta/shape
+# rweibull(N, shape, exp(bt)) %>% hist()
 
 
 #' Generate Modelled Data
@@ -202,7 +210,7 @@ create_rank_stat = function(comp_df) {
 #' or whatever or figure out where on earth this is reported (it must be 
 #' somewhere?).
 #' #TODO: Fix this bigly edward.
-extract_N_eff_badly = function(model_fit, params_we_care_about = 3){
+extract_N_eff_badly = function(model_fit){
     # This always prints to stdout even with `invisible` :(
     mod_summary = model_fit$cmdstan_summary()
 
@@ -215,7 +223,7 @@ extract_N_eff_badly = function(model_fit, params_we_care_about = 3){
 
     clean_N_eff = string_table %>% 
         # let's hope there's only ever 9 useless params reported at the fron
-        slice(9:(9 + params_we_care_about - 1)) %>% 
+        slice(9:(nrow(string_table) - 4)) %>% 
         # split if we see a space followed by a digit, word, +, or -
         separate(V1, sep = "\\s(?=(\\w+|\\d+|[\\+\\-]))", into = paste0("col_", 1:10)) %>%
         select(col_1, col_8) %>%
@@ -268,14 +276,11 @@ sbc_draw = function(seed = 1234, thin = TRUE){
     # thinning code
     if (thin == TRUE) {
         # Only extract parameters we care about, if we want to ignore a parameter
-        # give it a double underscore name or call it TRANSformed_variable.
-        params_we_want = names(params)[!str_detect(names(params), "trans|__")]
-        K_we_care_about = length(unlist(params[params_we_want]))
-
+        # give it an underscore name or call it TRANSformed_variable.
         N_eff_df = extract_N_eff_badly(
-            fit, 
-            params_we_care_about = K_we_care_about
-            )
+            fit
+            ) %>%
+            filter(!str_detect(term, "trans|_"))
 
 
         comp_df = comp_df %>%
@@ -301,6 +306,10 @@ sbc_draw = function(seed = 1234, thin = TRUE){
 }
 
 
+
+
+
+
 ################################################################################
 ###Simulation Time!!!!!!!!!!!###################################################
 ################################################################################
@@ -310,7 +319,7 @@ sbc_draw = function(seed = 1234, thin = TRUE){
 surv_model = cmdstan_model("inst/stan/for_ed.stan")
 plan(multicore, workers = 8)
 
-draws <- 1:500 %>%
+draws <- 1:200 %>%
   future_map_dfr(~sbc_draw(.x) %>% mutate(draw = .x),
                  .options = furrr_options(
                      seed = TRUE,
@@ -347,20 +356,33 @@ ggsave(
 ################ Scratchpad Stuff ##############################################
 # Delete for future use #
 ######## Tests ##########  
-# seed = 1
-# seed = seed + 1
-# sbc_draw(seed)
+seed = 1
+seed = seed + 1
+sbc_draw(seed)
 # print(seed)
 # # seed = 1
-# data <- gen_data(seed)
-# params <- gen_params(seed,
-#                     data)
-# modelled_data <- gen_modeled_data(seed,
-#                                 data,
-#                                 params)
+data <- gen_data(seed)
+params <- gen_params(seed,
+                    data)
+modelled_data <- gen_modeled_data(seed,
+                                data,
+                                params)
+dt = data.table(
+    il = modelled_data$interval_left,
+    ir = modelled_data$interval_right,
+    censored = data$censoring
+)
+dt[, c("x_1", "x_2") :=  as.data.table(modelled_data$X)]
 
-
-# data_for_stan <- c(data, modelled_data)
+dt
+dt[censored == FALSE] %>%
+    ggplot(aes( 
+        x = ir
+    )) +
+    geom_histogram()
+params
+rweibull(100, params$shape, 100)
+data_for_stan <- c(data, modelled_data)
 
 #     fit = surv_model$sample(
 #                   data = data_for_stan,

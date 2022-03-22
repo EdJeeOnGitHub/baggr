@@ -29,7 +29,7 @@ data {
 
 parameters {
   vector[nc]    beta;     //values of log(HR)'s - see below
-  real<lower=0> shape;   //log(shape)
+  real lshape_;   //log(shape)
 }
 
 transformed parameters {
@@ -44,7 +44,8 @@ transformed parameters {
      for intercept this issue is not important!
   */
   vector[nc]    beta_transformed;
-
+  real shape;
+  shape = exp(lshape_);
   if(nc > 0) {
     for(i in 1:nc)
       beta_transformed[i] = -1*beta[i]/shape;
@@ -55,7 +56,7 @@ model {
   real scale[N];
   // vector[nsc] baseline_survival;
   
-  shape ~ lognormal(0, 1);
+  lshape_ ~ normal(2, 0.5);
 
   for(j in 1:nc) {
     beta[j]  ~ normal(beta_mean[j], beta_sigma[j]);
