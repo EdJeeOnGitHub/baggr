@@ -5,7 +5,6 @@ library(furrr) # like purrr but in parallel thanks to future
 library(cmdstanr) # stan
 
 
-
 ################################################################################
 ##SBC Functions woooooooooooooo#################################################
 ################################################################################
@@ -17,27 +16,32 @@ library(cmdstanr) # stan
 #' modelled) 
 #' 
 #' #TODO: Create a meta gen_data function to vary hyper params 
-gen_data = function(seed) {
-    set.seed(seed + 1e6)
-    N = 1000
-    nc = 2
-    nsc = 2
+meta_gen_data_function = function(N = 1000,
+                                  nc = 3,
+                                  nsc = 3,
+                                  beta_mean = rep(0, nc),
+                                  beta_sigma = rep(1, nc)){
+    function(seed) {
+        set.seed(seed + 1e6)
+        N = N
+        nc = nc
+        nsc = nsc 
+        beta_mean = beta_mean
+        beta_sigma = beta_sigma
 
-    # super tight beta draws atm
-    # TODO: Draw from an actual hyper distribution
-    beta_mean = rep(0, nc)
-    beta_sigma = rep(1, nc)
+        censoring = rbernoulli(N, p = 0.5)
 
-    # whether interval censored or not is random atm
-    censoring = rbernoulli(N, p = 0.5)
-    return(list(
-        N = N,
-        nc = nc,
-        nsc = nsc,
-        beta_mean = beta_mean,
-        beta_sigma = beta_sigma,
-        censoring = censoring
-    ))
+        return(list(
+            N = N,
+            nc = nc,
+            nsc = nsc,
+            beta_mean = beta_mean,
+            beta_sigma = beta_sigma,
+            censoring = censoring
+        ))
+    }
+
+
 }
 
 #' Generate parameters 
@@ -134,7 +138,6 @@ sample_from_model <- function(seed,
                               params,
                               modeled_data,
                               iters) {
-
     data_for_stan <- c(data, modeled_data)
     fit = surv_model$sample(
                   data = data_for_stan,
@@ -258,7 +261,8 @@ extract_N_eff_badly = function(model_fit){
 #' 
 #' Gelman and co/others keep running till N_eff < N and thin every other draw 
 #' anyway but I have opted to skip this step. Possible #TODO
-sbc_draw = function(seed = 1234, thin = TRUE){
+sbc_draw = function(seed = 1234, thin = TRUE, ...){
+    gen_data = meta_gen_data_function(...)
     data = gen_data(seed)
     params = gen_params(seed,
                         data)
@@ -356,33 +360,33 @@ ggsave(
 ################ Scratchpad Stuff ##############################################
 # Delete for future use #
 ######## Tests ##########  
-seed = 1
-seed = seed + 1
-sbc_draw(seed)
-# print(seed)
-# # seed = 1
-data <- gen_data(seed)
-params <- gen_params(seed,
-                    data)
-modelled_data <- gen_modeled_data(seed,
-                                data,
-                                params)
-dt = data.table(
-    il = modelled_data$interval_left,
-    ir = modelled_data$interval_right,
-    censored = data$censoring
-)
-dt[, c("x_1", "x_2") :=  as.data.table(modelled_data$X)]
+# seed = 1
+# seed = seed + 1
+# sbc_draw(seed)
+# # print(seed)
+# # # seed = 1
+# data <- gen_data(seed)
+# params <- gen_params(seed,
+#                     data)
+# modelled_data <- gen_modeled_data(seed,
+#                                 data,
+#                                 params)
+# dt = data.table(
+#     il = modelled_data$interval_left,
+#     ir = modelled_data$interval_right,
+#     censored = data$censoring
+# )
+# dt[, c("x_1", "x_2") :=  as.data.table(modelled_data$X)]
 
-dt
-dt[censored == FALSE] %>%
-    ggplot(aes( 
-        x = ir
-    )) +
-    geom_histogram()
-params
-rweibull(100, params$shape, 100)
-data_for_stan <- c(data, modelled_data)
+# dt
+# dt[censored == FALSE] %>%
+#     ggplot(aes( 
+#         x = ir
+#     )) +
+#     geom_histogram()
+# params
+# rweibull(100, params$shape, 100)
+# data_for_stan <- c(data, modelled_data)
 
 #     fit = surv_model$sample(
 #                   data = data_for_stan,
