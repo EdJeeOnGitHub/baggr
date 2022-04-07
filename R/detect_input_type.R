@@ -22,6 +22,12 @@ detect_input_type <- function(data,
                       names(data)))))
     return("pool_wide")
 
+  if (!any(is.na(match(c("interval_left", "interval_right"), 
+                       names(data))))) {
+    return("survival")
+                       }
+
+
   if(check_columns_binary(data, stop = FALSE))
     return("pool_binary")
 

@@ -47,7 +47,7 @@ convert_inputs <- function(data,
                            silent = FALSE) {
 
   # Step 1: check what data are available (with some conversions) -----
-
+  browser()
   available_data <- detect_input_type(data, group, treatment, outcome)
 
   if(!is.null(test_data)){
@@ -242,7 +242,7 @@ convert_inputs <- function(data,
         out[[nm]] <- out_test[[nm]]
     }
   }
-
+#TODO: add survival data cleaning
   # 3.2. summary data: treatment effect only -----
   if(required_data == "pool_noctrl_narrow"){
     group_label <- data[[group]]
@@ -363,3 +363,23 @@ convert_inputs <- function(data,
     n_groups = out[["K"]],
     model = model))
 }
+
+
+library(tidyverse)
+N = 100
+K = 8
+treatment = rbinom(N, 1, 0.5)
+x = rnorm(N)
+intervals = matrix(rweibull(N*2, 1, scale = exp(1 + x + df_surv$treatment)), ncol = 2)
+df_surv = tibble(
+  treatment = treatment, 
+  interval_left = apply(intervals, 1, min),
+  interval_right  = apply(intervals, 1, max), 
+  censoring = rbinom(N, 1, 0.5), 
+  site = sample(1:K, size = N, replace = TRUE), 
+  x = x
+)
+df_surv[df_surv[, "censoring"] == 1, "interval_right"] = Inf
+df_surv
+
+
