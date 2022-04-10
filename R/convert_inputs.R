@@ -266,7 +266,6 @@ convert_inputs <- function(data,
         out[[nm]] <- out_test[[nm]]
     }
   }
-#TODO: add survival data cleaning
   # 3.2. summary data: treatment effect only -----
   if(required_data == "pool_noctrl_narrow"){
     group_label <- data[[group]]
