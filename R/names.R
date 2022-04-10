@@ -5,13 +5,16 @@ model_names <- c("mutau" = "Aggregate data (with control group)",
                  "rubin_full" = "Rubin model with individual-level data",
                  "quantiles" = "Effects on quantiles",
                  "logit" = "Logistic model",
-                 "sslab" = "Spike & slab model (3 components)")
+                 "sslab" = "Spike & slab model (3 components)",
+                 "survival" = "Survival models (Weibull)")
 
 data_type_names <- c("pool_noctrl_narrow" = "Aggregate (effects only)",
                      "pool_wide" = "Aggregate (control and effects)",
                      "pool_binary" = "Aggregate (event counts)",
                      "individual" = "Individual-level with continuous outcome",
-                     "individual_binary" = "Individual-level with binary outcome")
+                     "individual_binary" = "Individual-level with binary outcome",
+                     "individual_censored" = "Individual-level data with left 
+                                              and right censoring.")
 
 
 # Default settings for matching models with input data types (convert_inputs)
@@ -22,13 +25,15 @@ model_data_types <- c("rubin" = "pool_noctrl_narrow",
                       "mutau_full"  = "individual",
                       "sslab" = "individual",
                       #for now no quantiles model from summary level data
-                      "quantiles" = "individual")
+                      "quantiles" = "individual", 
+                      "survival" = "individual_censored")
 
 data_type_default_model <- c("pool_noctrl_narrow" = "rubin",
                              "pool_wide" = "mutau",
                              "pool_binary" = "logit",
                              "individual" = "rubin_full",
-                             "individual_binary" = "logit")
+                             "individual_binary" = "logit",
+                             "individual_censored" = "survival")
 
 
 # Allowed priors for different types of variables
