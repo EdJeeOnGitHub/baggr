@@ -14,20 +14,34 @@ is_binary <- function(v) {
 }
 
 check_columns <- function(data, outcome, group, treatment, stop.for.na = TRUE)  {
-
   if(!(is.character(outcome) && is.character(group) && is.character(treatment)))
     stop('Arguments "outcome", "group", "treatment" must be of type "character"')
 
   # Do columns exist?
-  if(is.null(data[[outcome]]))
-    stop(paste0("There's no column '", outcome, "' in data"))
+  if (length(outcome) == 2) {
+    if (is.null(data[outcome[1]]) | is.null(data[outcome[2]])) {
+      stop(paste0("There's no column '", outcome[1], "' or '",outcome[2], "' in data."))
+    }
+    if(!(is.numeric(data[[outcome[1]]])))
+      stop(paste0("Outcome variable in baggr has to be numeric (continuous)"))
+    if(!(is.numeric(data[[outcome[2]]])))
+      stop(paste0("Outcome variable in baggr has to be numeric (continuous)"))
+    if(any(is.na(data[[outcome[2]]])))
+      stop("Some of outcome values are NA")
+    if(any(is.na(data[[outcome[1]]])))
+      stop("Some of outcome values are NA")
+  } else {
+    if(is.null(data[[outcome]]))
+      stop(paste0("There's no column '", outcome, "' in data"))
+  }
+
   if(is.null(data[[group]]))
     stop(paste0("There's no column '", group, "' in data"))
   if(is.null(data[[treatment]]))
     stop(paste0("There's no column '", treatment, "' in data"))
 
   # Are they the correct type
-  if(!(is.numeric(data[[outcome]])))
+  if(!(is.numeric(data[[outcome[1]]])))
     stop(paste0("Outcome variable in baggr has to be numeric (continuous)"))
   if(!(is.numeric(data[[treatment]])))
     stop(paste0("Treatment variable in baggr has to be numeric"))
@@ -36,7 +50,7 @@ check_columns <- function(data, outcome, group, treatment, stop.for.na = TRUE)  
   if(stop.for.na){
     if(any(is.na(data[[treatment]])))
       stop("Some of treatment values are NA")
-    if(any(is.na(data[[outcome]])))
+    if(any(is.na(data[[outcome[1]]])))
       stop("Some of outcome values are NA")
     if(any(is.na(data[[group]])))
       stop("Some of group values are NA")
