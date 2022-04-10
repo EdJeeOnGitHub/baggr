@@ -217,7 +217,6 @@ baggr <- function(data,
                   test_data = NULL, quantiles = seq(.05, .95, .1),
                   outcome = "outcome", group = "group", treatment = "treatment",
                   silent = FALSE, warn = TRUE, ...) {
-
   # check that it is data.frame of at least 1 row
   if(!inherits(data, "data.frame") || nrow(data) == 1)
     stop("data argument must be a data.frame of >1 rows")
@@ -225,7 +224,6 @@ baggr <- function(data,
   # Match arguments
   pooling <- match.arg(pooling)
   pooling_control <- match.arg(pooling_control)
-
   # For now we recommend that users format their data before passing to baggr()
   # data <- prepare_ma(data,
   #                    standardise = standardise, log = log,
@@ -306,7 +304,7 @@ baggr <- function(data,
                                         "none" = 0,
                                         "partial" = 1,
                                         "full" = 2)
-  if(model %in% c("logit", "rubin_full", "mutau_full"))
+  if(model %in% c("survival", "logit", "rubin_full", "mutau_full"))
     stan_data[["pooling_baseline"]] <- switch(pooling_control,
                                               "none" = 0,
                                               "partial" = 1)
@@ -317,7 +315,6 @@ baggr <- function(data,
   }
   if(model == "mutau")
     stan_data[["cumsum"]] <- cumsum_mutau
-
 
 
   # Prior settings:
@@ -363,8 +360,6 @@ baggr <- function(data,
     stan_data <- remove_data_for_prior_pred(stan_data)
   }
   stan_args$data <- stan_data
-
-
 
   # SAMPLING IS HERE
   fit <- do.call(rstan::sampling, stan_args)
