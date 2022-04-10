@@ -155,7 +155,7 @@ pooling <- function(bg,
                       # "rubin_full"  = group_effects(bg, summary = TRUE)[, "sd", 1],
                       "rubin_full"  = bg$summary_data$se.tau,
                       "mutau_full"  = bg$summary_data$se.tau,
-                      "survival" = bg$summary_data$se.tau
+                      "survival" = bg$summary_data$se.tau # TODO: Correct metric?
                       )
 
 

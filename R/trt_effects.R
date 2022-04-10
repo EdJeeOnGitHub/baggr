@@ -27,9 +27,10 @@ treatment_effect <- function(bg, summary = FALSE,
       message("There is no treatment effect estimated when pooling = 'none'.")
     return(list(tau = as.numeric(NA), sigma_tau = as.numeric(NA)))
   }
-  if(bg$model %in% c("rubin", "mutau", "mutau_full", "logit", "rubin_full")) {
+  if(bg$model %in% c("rubin", "mutau", "mutau_full", "logit", "survival", "rubin_full")) {
     tau <- rstan::extract(bg$fit, pars="mu")[[1]]
-    if(bg$model %in% c("rubin", "logit"))
+    # TODO: Check this is correct for survival models?
+    if(bg$model %in% c("rubin", "logit", "survival"))
       tau <- c(tau)
     if(bg$model %in% c("mutau", "mutau_full"))
       tau <- tau[,1,2]
@@ -39,7 +40,8 @@ treatment_effect <- function(bg, summary = FALSE,
         sigma_tau <- rstan::extract(bg$fit, pars="hypersd[1,2]")[[1]]
       else
         sigma_tau <- rstan::extract(bg$fit, pars="tau")[[1]]
-      if(bg$model %in% c("rubin", "logit"))
+        # TODO: CHeck this also
+      if(bg$model %in% c("rubin", "logit", "survival"))
         sigma_tau <- c(sigma_tau)
     }
     if(bg$pooling == "full")
