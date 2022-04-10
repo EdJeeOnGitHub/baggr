@@ -45,11 +45,8 @@ convert_inputs <- function(data,
                            covariates = c(),
                            test_data = NULL,
                            silent = FALSE) {
-
   # Step 1: check what data are available (with some conversions) -----
-  browser()
   available_data <- detect_input_type(data, group, treatment, outcome)
-
   if(!is.null(test_data)){
     available_data_test <- detect_input_type(test_data, group, treatment, outcome)
     if(available_data != available_data_test)
@@ -61,14 +58,16 @@ convert_inputs <- function(data,
   # let's assume data is individual-level
   # if we can't determine it
   # because it may have custom columns
-  if(available_data == "unknown")
+  if(available_data == "unknown") {
     available_data <- "individual" #in future can call it 'inferred ind.'
+  }
 
   if(grepl("individual", available_data)){
     check_columns(data, outcome, group, treatment)
     if(!is.null(test_data))
       check_columns(data, outcome, group, treatment)
   }
+
   if(is.null(model)) {
     # model <- names(model_data_types)[which(model_data_types == available_data)[1]]
     model <- data_type_default_model[[available_data]]
@@ -79,7 +78,6 @@ convert_inputs <- function(data,
     if(!(model %in% names(model_data_types)))
       stop("Unrecognised model, can't format data.")
   }
-
   # Convert mutau data to Rubin model data if requested
   if(model == "rubin" && available_data == "pool_wide"){
     test_data$se <- test_data$se.tau
@@ -90,21 +88,20 @@ convert_inputs <- function(data,
   }
 
 
-
   # Step 2: check what data are required by the model and match -----
   required_data <- model_data_types[[model]]
-
   if(required_data == "individual_binary" && available_data == "pool_binary") {
     data <- binary_to_individual(data, group, FALSE)
     available_data <- "individual_binary"
     message("Data were automatically converted from summary to individual-level.")
   }
 
-  if(required_data != available_data)
+  if(required_data != available_data) {
     stop(paste(
       "Data provided is of type", data_type_names[available_data],
       "and the model requires", data_type_names[required_data]))
   #for now this means no automatic conversion of individual->pooled
+  }
 
 
   # Step 3: conversions of data -----
@@ -129,7 +126,34 @@ convert_inputs <- function(data,
           "Test data for ", model, " model should include treated units only. ",
           "Baselines for all these groups should be included in data argument.")
     }
+    if (model == "survival") {
+      out <- list(
+        K = max(group_numeric),
+        N = nrow(data),
+        interval_left = data[[outcome[1]]],
+        interval_right = data[[outcome[2]]],
+        treatment = data[[treatment]],
+        censoring = data[["censoring"]],
+        site = group_numeric
+      )
+      if(is.null(test_data)) {
+        out$N_test <- 0
+        out$K_test <- 0
+        out$test_interval_left <- array(0, dim = 0)
+        out$test_interval_right <- array(0, dim = 0)
+        out$test_site <- array(0, dim = 0)
+        out$test_treatment <- array(0, dim = 0)
 
+      } else {
+        out$N_test <- nrow(test_data)
+        out$K_test <- max(group_numeric_test)
+        out$test_interval_left <-  test_data[[outcome[1]]]
+        out$test_interval_right <-  test_data[[outcome[2]]]
+        out$test_treatment <- test_data[[treatment]]
+        out$test_site <- group_numeric_test
+        # calculate SEs in each test group
+      }
+    }
     if(model %in% c("rubin_full", "mutau_full", "logit")){
       out <- list(
         K = max(group_numeric),
@@ -353,7 +377,6 @@ convert_inputs <- function(data,
   if(any(na_cols))
     stop(paste0("baggr() does not allow NA values in inputs (see vectors ",
                 paste(names(out)[na_cols], collapse = ", "), ")"))
-
   return(structure(
     out,
     data_type = available_data,
@@ -363,23 +386,4 @@ convert_inputs <- function(data,
     n_groups = out[["K"]],
     model = model))
 }
-
-
-library(tidyverse)
-N = 100
-K = 8
-treatment = rbinom(N, 1, 0.5)
-x = rnorm(N)
-intervals = matrix(rweibull(N*2, 1, scale = exp(1 + x + df_surv$treatment)), ncol = 2)
-df_surv = tibble(
-  treatment = treatment, 
-  interval_left = apply(intervals, 1, min),
-  interval_right  = apply(intervals, 1, max), 
-  censoring = rbinom(N, 1, 0.5), 
-  site = sample(1:K, size = N, replace = TRUE), 
-  x = x
-)
-df_surv[df_surv[, "censoring"] == 1, "interval_right"] = Inf
-df_surv
-
 
