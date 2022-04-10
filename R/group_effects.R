@@ -68,7 +68,7 @@ group_effects <- function(bg, summary = FALSE, transform = NULL, interval = .95,
 
   } else {
     # choose correct columns for the given models:
-    if(bg$model %in% c("rubin", "mutau", "mutau_full", "logit", "rubin_full")) {
+    if(bg$model %in% c("rubin", "mutau", "mutau_full", "logit", "survival", "rubin_full")) {
       #replace by extract:
       # m <- m[, grepl("^tau_k", colnames(m))]
       m <- rstan::extract(bg$fit, pars = "theta_k")[[1]]
