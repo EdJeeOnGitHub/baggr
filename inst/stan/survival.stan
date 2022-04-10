@@ -29,18 +29,19 @@ data {
   vector[3] prior_beta_val;
 
   //cross-validation variables:
-//   int<lower=0> N_test;
-//   int<lower=0> K_test;
-//   matrix[N_test, Nc] X_test;
-//   int<lower=0, upper=K> test_site[N_test];
-//   int<lower=0, upper=1> test_treatment[N_test];
+  int<lower=0> N_test;
+  int<lower=0> K_test;
+  matrix[N_test, Nc] X_test;
+  int<lower=0, upper=K> test_site[N_test];
+  int<lower=0, upper=1> test_treatment[N_test];
 
   //SURVIVAL-specific:
   int<lower=0,upper=1> censoring[N];
   real interval_left[N];
   real interval_right[N];
-//   int<lower=0,upper=1> y[N];
-//   int<lower=0,upper=1> test_y[N_test];
+
+  real test_interval_left[N_test];
+  real test_interval_right[N_test];
 }
 transformed data {
   int K_pooled; // number of modelled sites if we take pooling into account
@@ -82,9 +83,8 @@ transformed parameters {
   else if(pooling_baseline == 1) {
     baseline_k_raw = rep_vector(mu_baseline[1], K) + tau_baseline[1]*eta_baseline;
   }
-
-  theta_k = -1*theta_k/shape;
-  baseline_k = -1*baseline_k/shape;
+  theta_k = -1*theta_k_raw/shape;
+  baseline_k = -1*baseline_k_raw/shape;
 
 
 }
