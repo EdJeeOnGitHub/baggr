@@ -25,7 +25,6 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
 
   if(missing(prior))
     prior <- list()
-
   prior_list <- list()
 
   if(model %in% c("mutau", "mutau_full"))
@@ -34,6 +33,13 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
     re_dim <- 1
 
   # Swap data for summary data...
+
+  if(model == "survival") {
+    pma_data <- data.frame(outcome = stan_data$interval_left,
+                           group = stan_data$site,
+                           treatment = stan_data$treatment)
+      data <- prepare_ma(pma_data, effect = "mean")
+  }
   if(model %in% c("rubin_full", "logit", "mutau_full")) {
     pma_data <- data.frame(outcome = stan_data$y,
                            group = stan_data$site,
@@ -44,12 +50,13 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
       p <- data$c/data$n2
       data$mu <- log(p/(1-p))
     }
-    if(model %in% c("mutau_full", "rubin_full"))
+    if(model %in% c("mutau_full", "rubin_full")) {
       data <- prepare_ma(pma_data, effect = "mean")
+    }
   }
   # ...then proceed as you would in Rubin model
 
-  if(model %in% c("rubin", "mutau", "logit", "rubin_full", "sslab", "mutau_full")) {
+  if(model %in% c("rubin", "mutau", "logit", "survival", "rubin_full", "sslab", "mutau_full")) {
     # For each model we need a list of what priors can be specified and
     # what families of distributions are allowed for them
     # (this second part should be changed to just specifying dimensionality/type)
@@ -68,6 +75,8 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
                        "control_sd" = "positive_real"),
       "logit"  = c("hypermean" = "real", "hypersd" = "positive_real",
                    "control" = "real", "control_sd" = "positive_real"),
+      "survival"  = c("hypermean" = "real", "hypersd" = "positive_real",
+                   "control" = "real", "control_sd" = "positive_real"),
       "sslab"  = c("hypermean" = "real", "hypersd" = "positive_real",
                    "control" = "real", "control_sd" = "positive_real",
                    "scale_control"  = "real",
@@ -79,7 +88,7 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
     )
     for(current_prior in names(priors_spec[[model]])) {
       if(is.null(prior[[current_prior]])) {
-        if(model != "sslab")
+        if(model != "sslab") {
           default_prior_dist <- switch(current_prior,
                                        "hypermean"  = if(re_dim == 1)
                                          normal(0, 10*max(abs(data$tau)))
@@ -94,6 +103,23 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
                                        "control"    = normal(0, 10*max(abs(data$mu))),
                                        "control_sd" = uniform(0, 10*sd(data$mu))
           )
+        }
+        if(model == "survival") {
+          default_prior_dist <- switch(current_prior,
+                                       "hypermean"  = if(re_dim == 1)
+                                         normal(0, 1*max(abs(data$tau)))
+                                       else
+                                         multinormal(c(0,0),
+                                                     c(1*max(abs(data$mu)),
+                                                       1*max(abs(data$tau)))*diag(2)),
+                                       "sigma"      = uniform(0, 1*max(c(sqrt(data$n.mu)*data$se.mu,
+                                                                          sqrt(data$n.tau*data$se.tau)))),
+                                       "hypersd"    = uniform(0, 1*sd(data$tau)),
+                                       "hypercor"   = lkj(3),
+                                       "control"    = normal(0, 1*max(abs(data$mu))),
+                                       "control_sd" = uniform(0, 1*sd(data$mu))
+          )
+        }
 
         if(model == "sslab") {
           data_pos <- prepare_ma(data.frame(outcome = stan_data$y_pos,
@@ -174,7 +200,7 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
                         "Consider manually setting prior_control.")
               special_name <- "log odds of event rate in untreated: mean"
             }
-            if(model %in% c("rubin_full", "mutau_full")){
+            if(model %in% c("rubin_full", "mutau_full", "survival")){
               if(stan_data$pooling_baseline != 0)
                 special_name <- "mu (hyperparameter)"
               else
@@ -184,7 +210,7 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
             if(stan_data$pooling_baseline != 0){
               if(model == "logit")
                 special_name <- "log odds of event rate in untreated: sd"
-              if(model %in% c("rubin_full", "mutau_full")){
+              if(model %in% c("rubin_full", "mutau_full", "survival")){
                 special_name <- "sigma_mu (hyperparameter)"
               }
             }else
@@ -207,7 +233,7 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
              pooling != "partial")
             message("Prior for hyper-SD set, but pooling is not partial. Ignoring.")
           if(current_prior == "control_sd" &&
-             model %in% c("logit", "rubin_full", "mutau_full") &&
+             model %in% c("logit", "rubin_full", "mutau_full", "survival") &&
              stan_data$pooling_baseline == 0)
             message("SD hyperparameter for control groups defined,",
                     "but there is no pooling. Ignoring it.")
@@ -243,7 +269,6 @@ prepare_prior <- function(prior, data, stan_data, model, pooling, covariates,
   } else {
     prior_list <- set_prior_val(prior_list, "prior_beta", uniform(0, 1))
   }
-
   return(prior_list)
 }
 
