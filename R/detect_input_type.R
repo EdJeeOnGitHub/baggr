@@ -24,9 +24,12 @@ detect_input_type <- function(data,
 
   if (!any(is.na(match(c("interval_left", "interval_right"), 
                        names(data))))) {
-    return("survival")
+    return("individual_censored")
                        }
 
+  if (length(outcome) == 2) {
+    return("individual_censored")
+  }
 
   if(check_columns_binary(data, stop = FALSE))
     return("pool_binary")
@@ -34,7 +37,7 @@ detect_input_type <- function(data,
   # Individual-level data -----
   if(!is.null(data[[group]])){
     if(nrow(data) > length(unique(data[[group]]))){
-      if(is_binary(data[[outcome]]))
+      if(is_binary(data[[outcome[1]]]))
         return("individual_binary")
       else
         return("individual")
