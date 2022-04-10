@@ -154,7 +154,8 @@ pooling <- function(bg,
                       # These are SDs after pooling, don't use this (here for tests)
                       # "rubin_full"  = group_effects(bg, summary = TRUE)[, "sd", 1],
                       "rubin_full"  = bg$summary_data$se.tau,
-                      "mutau_full"  = bg$summary_data$se.tau
+                      "mutau_full"  = bg$summary_data$se.tau,
+                      "survival" = bg$summary_data$se.tau
                       )
 
 
@@ -226,7 +227,6 @@ pooling <- function(bg,
   if(metric == "isq") ret <- 1-ret
   if(metric == "hsq") ret <- 1/ret
   if(metric == "h")   ret <- sqrt(1/ret)
-
 
   if(summary)
     ret <- apply(ret, c(2,3), mint)
